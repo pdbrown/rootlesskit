@@ -41,6 +41,7 @@ type Opt struct {
 	CreateCgroupNS   bool
 	CreateUTSNS      bool
 	CreateIPCNS      bool
+	CreateNetNS      bool
 	ParentEUIDEnvKey string // optional env key to propagate geteuid() value
 	ParentEGIDEnvKey string // optional env key to propagate getegid() value
 	Propagation      string
@@ -142,7 +143,7 @@ func Parent(opt Opt) error {
 		Pdeathsig:  syscall.SIGKILL,
 		Cloneflags: syscall.CLONE_NEWUSER | syscall.CLONE_NEWNS,
 	}
-	if opt.NetworkDriver != nil {
+	if opt.NetworkDriver != nil || opt.CreateNetNS {
 		cmd.SysProcAttr.Unshareflags |= syscall.CLONE_NEWNET
 	}
 	if opt.CreatePIDNS {

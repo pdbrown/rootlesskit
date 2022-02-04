@@ -260,6 +260,7 @@ func createParentOpt(clicontext *cli.Context, pipeFDEnvKey, stateDirEnvKey, pare
 		CreateCgroupNS:   clicontext.Bool("cgroupns"),
 		CreateUTSNS:      clicontext.Bool("utsns"),
 		CreateIPCNS:      clicontext.Bool("ipcns"),
+		CreateNetNS:      false,
 		ParentEUIDEnvKey: parentEUIDEnvKey,
 		ParentEGIDEnvKey: parentEGIDEnvKey,
 		Propagation:      clicontext.String("propagation"),
@@ -313,7 +314,9 @@ func createParentOpt(clicontext *cli.Context, pipeFDEnvKey, stateDirEnvKey, pare
 	}
 
 	disableHostLoopback := clicontext.Bool("disable-host-loopback")
-	if !disableHostLoopback && clicontext.String("net") != "host" {
+	if !disableHostLoopback &&
+		clicontext.String("net") != "host" &&
+		clicontext.String("net") != "netns" {
 		logrus.Warn("specifying --disable-host-loopback is highly recommended to prohibit connecting to 127.0.0.1:* on the host namespace (requires slirp4netns or VPNKit)")
 	}
 
@@ -333,6 +336,9 @@ func createParentOpt(clicontext *cli.Context, pipeFDEnvKey, stateDirEnvKey, pare
 		if ifname != "" {
 			return opt, errors.New("ifname cannot be specified for --net=host")
 		}
+	case "netns":
+		opt.CreateNetNS = true
+		return opt, nil
 	case "slirp4netns":
 		binary := clicontext.String("slirp4netns-binary")
 		if _, err := exec.LookPath(binary); err != nil {
@@ -493,6 +499,8 @@ func createChildOpt(clicontext *cli.Context, pipeFDEnvKey string, targetCmd []st
 	}
 	switch s := clicontext.String("net"); s {
 	case "host":
+		// NOP
+	case "netns":
 		// NOP
 	case "slirp4netns":
 		opt.NetworkDriver = slirp4netns.NewChildDriver()
